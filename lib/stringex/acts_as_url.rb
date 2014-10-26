@@ -32,15 +32,8 @@ module Stringex
       end
 
       def get_conditions!(instance)
-        conditions = ["#{url_attribute} LIKE ?", instance.instance_variable_get("@acts_as_url_base_url") + '%']
-        unless instance.new_record?
-          conditions.first << " and id != ?"
-          conditions << instance.id
-        end
-        if scope_for_url
-          conditions.first << " and #{scope_for_url} = ?"
-          conditions << instance.send(scope_for_url)
-        end
+        conditions = {}
+        conditions[url_attribute] = instance.attributes[url_attribute]
         conditions
       end
 
@@ -48,7 +41,8 @@ module Stringex
         return if allow_duplicates
 
         base_url = instance.instance_variable_get("@acts_as_url_base_url")
-        url_owners = instance.class.unscoped.find(:all, :conditions => get_conditions!(instance))
+        url_owners = instance.class.where(get_conditions!(instance)).reject {|t| t.id == instance.id }
+
         if url_owners.any?{|owner| owner.send(url_attribute) == base_url}
           separator = duplicate_count_separator
           n = 1
